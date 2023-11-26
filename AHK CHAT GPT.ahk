@@ -1,21 +1,69 @@
-﻿; Basic GUI setup
+; Basic GUI setup
 #Include JSON.ahk
 #Include Jxon.ahk
 FileEncoding, UTF-8
+Menu, Tray, NoStandard
+Menu, Tray, Add, Show/Hide, ToggleGuiVisibility
+Menu, Tray, Add, Exit, ExitScript
+Menu, Tray, Add, Show/Hide, ToggleGuiVisibility
 global conversationHistory := []
-Gui, Add, Edit, vUserInput w400 h50, Enter your message here...
+Gui +AlwaysOnTop +ToolWindow +owndialogs
+Gui, Add, Edit,  x5 vUserInput w400 h50, Enter your message here...
 Gui, Add, Button, gSendToAI, Chat
+Gui, Add, Button, x+5 gClearMessages, Clear Messages
+Gui, Add, Button, x+5 gCopyLastResponse, Copy Last Response
 Gui, Font, s10, Arial Unicode MS
-Gui, Add, Edit, vAIResponse w400 h200 ReadOnly
-
-Gui, Show, w420 h300, Tom's AI Assistant
+Gui, Add, Edit, x5 vAIResponse w400 h300 ReadOnly
+Gui, Add, Text,x5 h15 y400 ,show/hide:
+Gui, Add, Hotkey, x+5 y395 h10 vHotkeyInput w50 h25, F8  ; Default hotkey is F8
+Gui, add, Button, x+5 y395 gApplyHotkey, Set
+Gui, Show, w420 h425, Tom's AI Assistant
+Hotkey, IfWinActive, Tom's AI Assistant
+Hotkey, Enter, SendtoAI, On
+Hotkey, IfWinActive
+Hotkey, F8, ToggleGuiVisibility  
 return
 
+ApplyHotkey:
+    Gui, Submit, NoHide  ; Save the current GUI contents to their associated variables
+    Hotkey, %HotkeyInput%, ToggleGuiVisibility  ; Register the hotkey
+return
+
+global guiHidden := false
+
+ToggleGuiVisibility:
+    if (guiHidden)
+    {
+        Gui, Show
+        guiHidden := false
+    }
+    else
+    {
+        Gui, Hide
+        guiHidden := true
+    }
+return
+
+ClearMessages:
+    conversationHistory := []  ; Clear conversation history
+    GuiControl,, AIResponse,  ; Clear the AIResponse Edit control
+return
+
+CopyLastResponse:
+    ; Retrieve current content in the AIResponse Edit control
+    GuiControlGet, currentContent, , AIResponse
+
+    ; Split the content into lines
+    Lines := StrSplit(currentContent, "`n", "`r")
+
+    ; Copy the last line (last response) to the clipboard
+    Clipboard := Lines[Lines.MaxIndex()]
+return
 
 SendToAI(userInput) {
     global
     url := "https://api.openai.com/v1/chat/completions"  ; Use the correct endpoint
-    apiKey := "API_ID"
+    apiKey := "API_KEY"
     ; Append user input to conversation history
     conversationHistory.Push({"role": "user", "content": userInput})
 
@@ -37,7 +85,7 @@ SendToAI(userInput) {
         }
     }
     jsonMessages := "[" . jsonMessages . "]"
-    jsonPayload := "{""model"": ""gpt-3.5-turbo"", ""messages"": " . jsonMessages . "}"
+    jsonPayload := "{""model"": ""gpt-3.5-turbo-1106"", ""messages"": " . jsonMessages . "}"
 
     ; Copy JSON payload to clipboard for debugging
     Clipboard := jsonPayload
@@ -79,7 +127,6 @@ ExtractContentFromJSON(jsonString) {
     return "Error: Unable to extract content from JSON response."
 }
 ; Button handler
-Enter::
 SendToAI:
     Gui, Submit, NoHide
     userInput := UserInput
@@ -87,19 +134,31 @@ SendToAI:
 
     aiResponse := SendToAI(userInput)
 
-    ; Escape backslashes in the AI response
-    aiResponse := StrReplace(aiResponse, "\\\", "\")
+    ; Format and display the messages
+    DisplayMessages(userInput, aiResponse)
 
+    ; Clear the UserInput field
+    GuiControl,, UserInput, 
+return
+
+DisplayMessages(userInput, aiResponse) {
     ; Retrieve current content in the AIResponse Edit control
     GuiControlGet, currentContent, , AIResponse
 
-    ; Append the new response to the existing content
-    newContent := currentContent . (StrLen(currentContent) > 0 ? "`n" : "") . aiResponse
+    ; Format the new messages with an extra line break
+    formattedText := "Me:`n " userInput "`n`nTom's AI Assistant:`n " aiResponse "`n`n"
+
+    ; Append the formatted text to the existing content
+    newContent := currentContent . formattedText
+
+    ; Update the AIResponse control with the new content
     GuiControl,, AIResponse, %newContent%
+}
 
-return
 
-Esc::
+
+
+ExitScript:
 GuiClose:
     conversationHistory := []  ; Clear conversation history
     ExitApp
