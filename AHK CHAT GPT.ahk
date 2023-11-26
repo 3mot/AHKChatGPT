@@ -11,7 +11,7 @@ return
 SendToAI(userInput) {
     global
     url := "https://api.openai.com/v1/chat/completions"  ; Use the correct endpoint
-    apiKey := "API_KEY_HERE
+    apiKey := "API_KEY_HERE"
     ; Append user input to conversation history
     conversationHistory.Push({"role": "user", "content": userInput})
 
