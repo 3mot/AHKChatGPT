@@ -1,9 +1,13 @@
-; Basic GUI setup
+﻿; Basic GUI setup
 #Include JSON.ahk
+#Include Jxon.ahk
+FileEncoding, UTF-8
 global conversationHistory := []
 Gui, Add, Edit, vUserInput w400 h50, Enter your message here...
 Gui, Add, Button, gSendToAI, Chat
+Gui, Font, s10, Arial Unicode MS
 Gui, Add, Edit, vAIResponse w400 h200 ReadOnly
+
 Gui, Show, w420 h300, Tom's AI Assistant
 return
 
@@ -11,7 +15,7 @@ return
 SendToAI(userInput) {
     global
     url := "https://api.openai.com/v1/chat/completions"  ; Use the correct endpoint
-    apiKey := "API_KEY_HERE"
+    apiKey := "API_ID"
     ; Append user input to conversation history
     conversationHistory.Push({"role": "user", "content": userInput})
 
@@ -59,18 +63,20 @@ SendToAI(userInput) {
 
 }
 ExtractContentFromJSON(jsonString) {
-    ; Define the RegEx pattern to match the "content" field
-    pattern := """content""\s*:\s*""([^""]+)"""
-    ; Use RegExMatch to find the first match of the pattern
-    if (RegExMatch(jsonString, pattern, match)) {
-        ; Extract the content from the RegEx match
-        content := match1
+    ; Parse the JSON string into an AutoHotkey object
+    json := JXON_Load(jsonString)
 
-        return content
+    ; Ensure the JSON is valid and contains the expected fields
+    if (IsObject(json) && json.HasKey("choices") && json.choices.MaxIndex() >= 0) {
+        ; Extract the content from the message of the first choice
+        messageObj := json.choices[1].message
+        if (IsObject(messageObj) && messageObj.HasKey("content")) {
+            return messageObj.content
+        }
     }
 
-    ; Return an empty string if the "content" field is not found
-    return ""
+    ; Return an error message if the expected data is not found
+    return "Error: Unable to extract content from JSON response."
 }
 ; Button handler
 Enter::
