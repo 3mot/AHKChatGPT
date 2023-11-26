@@ -1,18 +1,17 @@
 ; Basic GUI setup
 #Include JSON.ahk
 global conversationHistory := []
-Inputbox, apikeyuser, Enter your API Key, Enter your API Key for Chat GPT,,250,100
 Gui, Add, Edit, vUserInput w400 h50, Enter your message here...
 Gui, Add, Button, gSendToAI, Chat
 Gui, Add, Edit, vAIResponse w400 h200 ReadOnly
 Gui, Show, w420 h300, Tom's AI Assistant
 return
 
-; apikeybackup := "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"
 
-SendToAI(userInput,apikeyuser) {
+SendToAI(userInput) {
+    global
     url := "https://api.openai.com/v1/chat/completions"  ; Use the correct endpoint
-    apiKey := apikeyuser
+    apiKey := "API_KEY_HERE
     ; Append user input to conversation history
     conversationHistory.Push({"role": "user", "content": userInput})
 
@@ -80,7 +79,7 @@ SendToAI:
     userInput := UserInput
     ; Escape backslashes in the user's input
 
-    aiResponse := SendToAI(userInput,apikeyuser)
+    aiResponse := SendToAI(userInput)
 
     ; Escape backslashes in the AI response
     aiResponse := StrReplace(aiResponse, "\\\", "\")
